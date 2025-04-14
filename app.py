@@ -1,25 +1,71 @@
 from flask import Flask, jsonify
-import json
-import os
+import datetime
+import random
+import os  # Ajout de cette importation
 
 app = Flask(__name__)
 
-# Chemin vers le fichier JSON
-json_path = os.path.join(os.path.dirname(__file__), 'data.json')
+# Générer des logs utilisateurs simulés
+def generate_user_logs(n=50):
+    logs = []
+    actions = ["login", "logout", "view_page", "click_button", "submit_form", "download", "upload"]
+    pages = ["accueil", "profil", "paramètres", "produits", "contact", "aide", "blog"]
+    statuses = ["success", "error", "warning", "info"]
+    
+    # Date de début (il y a 7 jours)
+    start_date = datetime.datetime.now() - datetime.timedelta(days=7)
+    
+    for i in range(n):
+        user_id = random.randint(1, 100)
+        action = random.choice(actions)
+        page = random.choice(pages)
+        status = random.choice(statuses)
+        
+        # Générer un timestamp aléatoire dans les 7 derniers jours
+        random_seconds = random.randint(0, 7 * 24 * 60 * 60)
+        timestamp = start_date + datetime.timedelta(seconds=random_seconds)
+        
+        logs.append({
+            "id": i + 1,
+            "user_id": user_id,
+            "action": action,
+            "page": page,
+            "status": status,
+            "timestamp": timestamp.isoformat(),
+            "ip_address": f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
+        })
+    
+    return logs
 
-@app.route('/')
-def home():
-    return """
-    <h1>Service de logs utilisateurs</h1>
-    <p>Accédez aux logs via <a href="/logs">/logs</a></p>
-    """
-
-@app.route('/logs')
+# Route pour servir les logs en JSON
+@app.route('/api/logs', methods=['GET'])
 def get_logs():
-    with open(json_path, 'r') as file:
-        logs = json.load(file)
+    logs = generate_user_logs()
     return jsonify(logs)
 
+# Route racine
+@app.route('/')
+def index():
+    return """
+    <html>
+        <head>
+            <title>Service de Logs</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                h1 { color: #333; }
+                .container { max-width: 800px; margin: 0 auto; }
+                code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Service de Logs Utilisateurs</h1>
+                <p>Bienvenue sur le service de logs utilisateurs simulés.</p>
+                <p>Pour accéder aux logs, utilisez l'URL: <code>/api/logs</code></p>
+            </div>
+        </body>
+    </html>
+    """
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
